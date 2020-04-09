@@ -18,7 +18,8 @@ include_directories(lib)
 set(sources
     src/main.cpp
     src/helpers.cpp
-    src/PID.cpp)
+    src/PID.cpp
+    src/Monitor.cpp)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
 
