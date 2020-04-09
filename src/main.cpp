@@ -2,6 +2,7 @@
 #include <cmath>
 #include <iostream>
 #include <string>
+#include "Monitor.h"
 #include "PID.h"
 #include "helpers.h"
 #include "json.hpp"
@@ -19,8 +20,10 @@ int main() {
   PID pid;
   pid.Init(0.15, 0.004, 3.0);
 
-  h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
-                     uWS::OpCode opCode) {
+  Monitor monitor;
+
+  h.onMessage([&pid, &monitor](uWS::WebSocket<uWS::SERVER> ws, char *data,
+                               size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -35,15 +38,18 @@ int main() {
         if (event == "telemetry") {
           // j[1] is the data JSON object
           double cte = std::stod(j[1]["cte"].get<string>());
-          // double speed = std::stod(j[1]["speed"].get<string>());
-          // double angle = std::stod(j[1]["steering_angle"].get<string>());
           double steer_value;
 
           pid.UpdateError(cte);
           steer_value = -pid.TotalError();
+          // Monitoring
+          monitor.update(cte, steer_value);
 
           // DEBUG
           spdlog::info("CTE: {} | Steering Value: {}", cte, steer_value);
+          // Evaluation
+          spdlog::info("Mean CTE: {} | Mean angular acceleration: {}",
+                       monitor.mean_cte, monitor.mean_lacc);
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;
@@ -59,9 +65,12 @@ int main() {
     }  // end websocket message if
   });  // end h.onMessage
 
-  h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
-    spdlog::info("Environment session connected!");
-  });
+  h.onConnection(
+      [&h, &monitor](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
+        spdlog::info("Environment session connected!");
+        // Reset evaluation metrics
+        monitor.reset();
+      });
 
   h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code,
                          char *message, size_t length) {
