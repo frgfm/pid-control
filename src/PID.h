@@ -34,14 +34,10 @@ class PID {
   /**
    * PID Errors
    */
-  double p_error;
-  double i_error;
-  double d_error;
+  double p_error, i_error, d_error;
 
   /**
    * PID Coefficients
    */
-  double Kp;
-  double Ki;
-  double Kd;
+  double Kp, Ki, Kd;
 };
